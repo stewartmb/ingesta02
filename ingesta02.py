@@ -9,7 +9,7 @@ db_user = "root"
 db_password = "utec"
 db_name = "profesores_y_cursos"
 db_port = 8005
-mysql_tables = ["profesores", "cursos"]
+mysql_tables = ["Profesor", "Curso"]
 
 # Parámetros para S3
 nombre_bucket = "proyecto-uni"
