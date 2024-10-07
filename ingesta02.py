@@ -26,7 +26,7 @@ def export_mysql_to_csv(table_name):
     cursor.execute(f"SELECT * FROM {table_name}")
     resultados = cursor.fetchall()
 
-    fichero_upload = f"{table_name}"
+    fichero_upload = f"{table_name}_mySQL"
     with open(fichero_upload, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([i[0] for i in cursor.description])
