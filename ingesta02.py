@@ -1,6 +1,7 @@
 import boto3
 import mysql.connector
 import csv
+import os
 
 # Parámetros de conexión MySQL
 db_host = "34.237.90.249"
@@ -8,7 +9,7 @@ db_user = "root"
 db_password = "utec"
 db_name = "profesores_y_cursos"
 db_port = 8005
-mysql_tables = ["Curso", "Profesor"]
+mysql_tables = ["profesores", "cursos"]
 
 # Parámetros para S3
 nombre_bucket = "proyecto-uni"
@@ -26,18 +27,24 @@ def export_mysql_to_csv(table_name):
     cursor.execute(f"SELECT * FROM {table_name}")
     resultados = cursor.fetchall()
 
-    fichero_upload = f"{table_name}_mySQL"
+    fichero_upload = f"{table_name}.csv"
     with open(fichero_upload, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow([i[0] for i in cursor.description])
-        writer.writerows(resultados)
+        writer.writerow([i[0] for i in cursor.description])  # Escribir el encabezado
+        writer.writerows(resultados)  # Escribir los datos
 
     cursor.close()
     conexion.close()
-    
-    # Subir archivo a S3
-    s3_client.upload_file(fichero_upload, nombre_bucket, fichero_upload)
-    print(f"Ingesta completada y archivo {fichero_upload} subido a S3.")
+
+    # Definir la ruta de la carpeta en S3 donde se guardará el archivo
+    s3_key = f"{table_name}/{fichero_upload}"
+
+    # Subir el archivo CSV a la carpeta correspondiente en el bucket S3
+    s3_client.upload_file(fichero_upload, nombre_bucket, s3_key)
+    print(f"Ingesta completada y archivo {fichero_upload} subido a S3 en la carpeta {table_name}/.")
+
+    # Eliminar el archivo local después de subirlo a S3 para ahorrar espacio
+    os.remove(fichero_upload)
 
 def main():
     for table in mysql_tables:
