@@ -6,39 +6,42 @@ import csv
 db_host = "34.237.90.249"
 db_user = "root"
 db_password = "utec"
-db_name = "tienda"
+db_name = "profesores_y_cursos"
 db_port = 8005
-db_table = "fabricantes"  # Tabla especificada
+mysql_tables = ["Curso", "Profesor"]
 
 # Parámetros para S3
-nombreBucket = "stewartmb-output-01"
-ficheroUpload = "tienda_mysql.csv"
+nombre_bucket = "proyecto-uni"
+s3_client = boto3.client('s3')
 
-# Conectar a la base de datos MySQL
-conexion = mysql.connector.connect(
-    host=db_host,
-    port=db_port,
-    user=db_user,
-    password=db_password,
-    database=db_name
-)
+def export_mysql_to_csv(table_name):
+    conexion = mysql.connector.connect(
+        host=db_host,
+        port=db_port,
+        user=db_user,
+        password=db_password,
+        database=db_name
+    )
+    cursor = conexion.cursor()
+    cursor.execute(f"SELECT * FROM {table_name}")
+    resultados = cursor.fetchall()
 
-cursor = conexion.cursor()
-cursor.execute(f"SELECT * FROM {db_table}")
-resultados = cursor.fetchall()
+    fichero_upload = f"{table_name}_mysql.csv"
+    with open(fichero_upload, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([i[0] for i in cursor.description])
+        writer.writerows(resultados)
 
-# Escribir los resultados en un archivo CSV
-with open(ficheroUpload, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow([i[0] for i in cursor.description])  # Escribir el encabezado
-    writer.writerows(resultados)  # Escribir los datos
+    cursor.close()
+    conexion.close()
+    
+    # Subir archivo a S3
+    s3_client.upload_file(fichero_upload, nombre_bucket, fichero_upload)
+    print(f"Ingesta completada y archivo {fichero_upload} subido a S3.")
 
-# Cerrar la conexión a la base de datos
-cursor.close()
-conexion.close()
+def main():
+    for table in mysql_tables:
+        export_mysql_to_csv(table)
 
-# Subir el archivo CSV al bucket S3
-s3 = boto3.client('s3')
-s3.upload_file(ficheroUpload, nombreBucket, ficheroUpload)
-
-print("Ingesta completada y archivo subido a S3.")
+if __name__ == "__main__":
+    main()
